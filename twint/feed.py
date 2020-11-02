@@ -1,13 +1,7 @@
-import time
-from datetime import datetime
-
-from bs4 import BeautifulSoup
-from re import findall
+from datetime import datetime, timezone
 from json import loads
-
-import logging as logme
-
-from .tweet import utc_to_local, Tweet_formats
+from logging import Logger
+from typing import Optional, Tuple, List
 
 
 class NoMoreTweetsException(Exception):
@@ -15,76 +9,36 @@ class NoMoreTweetsException(Exception):
         super().__init__(msg)
 
 
-def Follow(response):
-    logme.debug(__name__ + ':Follow')
-    soup = BeautifulSoup(response, "html.parser")
-    follow = soup.find_all("td", "info fifty screenname")
-    cursor = soup.find_all("div", "w-button-more")
+def utc_to_local(utc_dt):
+    return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+
+
+Tweet_formats = {
+    'datetime': '%Y-%m-%d %H:%M:%S %Z',
+    'datestamp': '%Y-%m-%d',
+    'timestamp': '%H:%M:%S'
+}
+
+
+def _get_cursor(response: dict):
     try:
-        cursor = findall(r'cursor=(.*?)">', str(cursor))[0]
-    except IndexError:
-        logme.critical(__name__ + ':Follow:IndexError')
-
-    return follow, cursor
-
-
-# TODO: this won't be used by --profile-full anymore. if it isn't used anywhere else, perhaps remove this in future
-def Mobile(response):
-    logme.debug(__name__ + ':Mobile')
-    soup = BeautifulSoup(response, "html.parser")
-    tweets = soup.find_all("span", "metadata")
-    max_id = soup.find_all("div", "w-button-more")
-    try:
-        max_id = findall(r'max_id=(.*?)">', str(max_id))[0]
-    except Exception as e:
-        logme.critical(__name__ + ':Mobile:' + str(e))
-
-    return tweets, max_id
-
-
-def MobileFav(response):
-    soup = BeautifulSoup(response, "html.parser")
-    tweets = soup.find_all("table", "tweet")
-    max_id = soup.find_all("div", "w-button-more")
-    try:
-        max_id = findall(r'max_id=(.*?)">', str(max_id))[0]
-    except Exception as e:
-        print(str(e) + " [x] feed.MobileFav")
-
-    return tweets, max_id
-
-
-def _get_cursor(response):
-    try:
-        next_cursor = response['timeline']['instructions'][0]['addEntries']['entries'][-1]['content'][
-            'operation']['cursor']['value']
+        next_cursor = \
+            response['timeline']['instructions'][0]['addEntries']['entries'][-1]['content']['operation']['cursor'][
+                'value']
     except KeyError:
         # this is needed because after the first request location of cursor is changed
-        next_cursor = response['timeline']['instructions'][-1]['replaceEntry']['entry']['content']['operation'][
-            'cursor']['value']
+        next_cursor = \
+            response['timeline']['instructions'][-1]['replaceEntry']['entry']['content']['operation']['cursor']['value']
     return next_cursor
 
 
-def Json(response):
-    logme.debug(__name__ + ':Json')
-    json_response = loads(response)
-    html = json_response["items_html"]
-    soup = BeautifulSoup(html, "html.parser")
-    feed = soup.find_all("div", "tweet")
-    return feed, json_response["min_position"]
-
-
-def parse_tweets(config, response):
-    logme.debug(__name__ + ':parse_tweets')
+def parse_tweets(response, logger: Optional[Logger] = None) -> Tuple[List[dict], str]:
     response = loads(response)
     if len(response['globalObjects']['tweets']) == 0:
-        msg = 'No more data!'
-        raise NoMoreTweetsException(msg)
+        raise NoMoreTweetsException('No more data!')
     feed = []
     for timeline_entry in response['timeline']['instructions'][0]['addEntries']['entries']:
-        # this will handle the cases when the timeline entry is a tweet
-        if (config.TwitterSearch or config.Profile) and (timeline_entry['entryId'].startswith('sq-I-t-') or
-                                                         timeline_entry['entryId'].startswith('tweet-')):
+        if timeline_entry['entryId'].startswith('sq-I-t-') or timeline_entry['entryId'].startswith('tweet-'):
             if 'tweet' in timeline_entry['content']['item']['content']:
                 _id = timeline_entry['content']['item']['content']['tweet']['id']
                 # skip the ads
@@ -100,9 +54,8 @@ def parse_tweets(config, response):
             try:
                 temp_obj = response['globalObjects']['tweets'][_id]
             except KeyError:
-                logme.info('encountered a deleted tweet with id {}'.format(_id))
-
-                config.deleted.append(_id)
+                if logger:
+                    logger.info('encountered a deleted tweet with id %s', _id)
                 continue
             temp_obj['user_data'] = response['globalObjects']['users'][temp_obj['user_id_str']]
             if 'retweeted_status_id_str' in temp_obj:
