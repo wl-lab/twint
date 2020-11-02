@@ -24,6 +24,7 @@ class Config:
     Images: bool = False
     Videos: bool = False
     Media: bool = False
+    Replies: bool = False
     ProxyHost: str = ""
     ProxyPort: int = 0
     ProxyType: object = None

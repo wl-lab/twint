@@ -1,4 +1,3 @@
-import logging as logme
 from datetime import datetime, timezone
 from json import loads
 
@@ -52,7 +51,7 @@ def parse_tweets(config, response):
             try:
                 temp_obj = response['globalObjects']['tweets'][_id]
             except KeyError:
-                # todo logme.info('encountered a deleted tweet with id {}'.format(_id))
+                # todo log.info('encountered a deleted tweet with id {}'.format(_id))
                 config.deleted.append(_id)
                 continue
             temp_obj['user_data'] = response['globalObjects']['users'][temp_obj['user_id_str']]

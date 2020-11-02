@@ -1,5 +1,6 @@
 import datetime
 from sys import platform
+from typing import NamedTuple
 from urllib.parse import quote
 from urllib.parse import urlencode
 
@@ -7,14 +8,20 @@ mobile = "https://mobile.twitter.com"
 base = "https://api.twitter.com/2/search/adaptive.json"
 
 
-def _sanitize_query(_url, params):
+class SearchParams(NamedTuple):
+    url: str
+    params: list
+    serial_query: str
+
+
+def sanitize_query(_url, params):
     _serialQuery = ""
     _serialQuery = urlencode(params, quote_via=quote)
     _serialQuery = _url + "?" + _serialQuery
     return _serialQuery
 
 
-def _format_date(date):
+def format_date(date):
     if "win" in platform:
         return f'\"{date.split()[0]}\"'
     try:
@@ -23,7 +30,7 @@ def _format_date(date):
         return int(datetime.datetime.strptime(date, "%Y-%m-%d").timestamp())
 
 
-async def search(config, init):
+def common_search(config, init) -> SearchParams:
     url = base
     tweet_count = 100
     q = ""
@@ -71,9 +78,9 @@ async def search(config, init):
     if config.Year:
         q += f" until:{config.Year}-1-1"
     if config.Since:
-        q += f" since:{_format_date(config.Since)}"
+        q += f" since:{format_date(config.Since)}"
     if config.Until:
-        q += f" until:{_format_date(config.Until)}"
+        q += f" until:{format_date(config.Until)}"
     if config.Email:
         q += ' "mail" OR "email" OR'
         q += ' "gmail" OR "e-mail"'
@@ -119,11 +126,11 @@ async def search(config, init):
 
     q = q.strip()
     params.append(("q", q))
-    _serialQuery = _sanitize_query(url, params)
-    return url, params, _serialQuery
+    serial_query = sanitize_query(url, params)
+    return SearchParams(url, params, serial_query)
 
 
-def search_profile(config, init=None):
+def profile_search(config, init=None) -> SearchParams:
     url = 'https://api.twitter.com/2/timeline/profile/{user_id}.json'.format(user_id=config.UserId)
     tweet_count = 100
     params = [
@@ -156,5 +163,5 @@ def search_profile(config, init=None):
 
     if type(init) == str:
         params.append(('cursor', str(init)))
-    serial_query = _sanitize_query(url, params)
-    return url, params, serial_query
+    serial_query = sanitize_query(url, params)
+    return SearchParams(url, params, serial_query)
