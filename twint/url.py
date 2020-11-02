@@ -1,21 +1,20 @@
 import datetime
 from sys import platform
-import logging as logme
-from urllib.parse import urlencode
 from urllib.parse import quote
+from urllib.parse import urlencode
 
 mobile = "https://mobile.twitter.com"
 base = "https://api.twitter.com/2/search/adaptive.json"
 
 
-def _sanitizeQuery(_url, params):
+def _sanitize_query(_url, params):
     _serialQuery = ""
     _serialQuery = urlencode(params, quote_via=quote)
     _serialQuery = _url + "?" + _serialQuery
     return _serialQuery
 
 
-def _formatDate(date):
+def _format_date(date):
     if "win" in platform:
         return f'\"{date.split()[0]}\"'
     try:
@@ -24,48 +23,7 @@ def _formatDate(date):
         return int(datetime.datetime.strptime(date, "%Y-%m-%d").timestamp())
 
 
-async def Favorites(username, init):
-    logme.debug(__name__ + ':Favorites')
-    url = f"{mobile}/{username}/favorites?lang=en"
-
-    if init != '-1':
-        url += f"&max_id={init}"
-
-    return url
-
-
-async def Followers(username, init):
-    logme.debug(__name__ + ':Followers')
-    url = f"{mobile}/{username}/followers?lang=en"
-
-    if init != '-1':
-        url += f"&cursor={init}"
-
-    return url
-
-
-async def Following(username, init):
-    logme.debug(__name__ + ':Following')
-    url = f"{mobile}/{username}/following?lang=en"
-
-    if init != '-1':
-        url += f"&cursor={init}"
-
-    return url
-
-
-async def MobileProfile(username, init):
-    logme.debug(__name__ + ':MobileProfile')
-    url = f"{mobile}/{username}?lang=en"
-
-    if init != '-1':
-        url += f"&max_id={init}"
-
-    return url
-
-
-async def Search(config, init):
-    logme.debug(__name__ + ':Search')
+async def search(config, init):
     url = base
     tweet_count = 100
     q = ""
@@ -96,7 +54,7 @@ async def Search(config, init):
         ('ext', 'mediaStats%2ChighlightedLabel'),
         ('tweet_search_mode', 'live'),  # this can be handled better, maybe take an argument and set it then
     ]
-    if not config.Popular_tweets:
+    if not config.PopularTweets:
         params.append(('f', 'tweets'))
     if config.Lang:
         params.append(("l", config.Lang))
@@ -109,14 +67,13 @@ async def Search(config, init):
         config.Geo = config.Geo.replace(" ", "")
         q += f" geocode:{config.Geo}"
     if config.Search:
-
         q += f" {config.Search}"
     if config.Year:
         q += f" until:{config.Year}-1-1"
     if config.Since:
-        q += f" since:{_formatDate(config.Since)}"
+        q += f" since:{_format_date(config.Since)}"
     if config.Until:
-        q += f" until:{_formatDate(config.Until)}"
+        q += f" until:{_format_date(config.Until)}"
     if config.Email:
         q += ' "mail" OR "email" OR'
         q += ' "gmail" OR "e-mail"'
@@ -139,36 +96,35 @@ async def Search(config, init):
     if config.Replies:
         q += " filter:replies"
     # although this filter can still be used, but I found it broken in my preliminary testing, needs more testing
-    if config.Native_retweets:
+    if config.NativeRetweets:
         q += " filter:nativeretweets"
-    if config.Min_likes:
-        q += f" min_faves:{config.Min_likes}"
-    if config.Min_retweets:
-        q += f" min_retweets:{config.Min_retweets}"
-    if config.Min_replies:
-        q += f" min_replies:{config.Min_replies}"
+    if config.MinLikes:
+        q += f" min_faves:{config.MinLikes}"
+    if config.MinRetweets:
+        q += f" min_retweets:{config.MinRetweets}"
+    if config.MinReplies:
+        q += f" min_replies:{config.MinReplies}"
     if config.Links == "include":
         q += " filter:links"
     elif config.Links == "exclude":
         q += " exclude:links"
     if config.Source:
         q += f" source:\"{config.Source}\""
-    if config.Members_list:
-        q += f" list:{config.Members_list}"
-    if config.Filter_retweets:
+    if config.MembersList:
+        q += f" list:{config.MembersList}"
+    if config.FilterRetweets:
         q += f" exclude:nativeretweets exclude:retweets"
-    if config.Custom_query:
-        q = config.Custom_query
+    if config.CustomQuery:
+        q = config.CustomQuery
 
     q = q.strip()
     params.append(("q", q))
-    _serialQuery = _sanitizeQuery(url, params)
+    _serialQuery = _sanitize_query(url, params)
     return url, params, _serialQuery
 
 
-def SearchProfile(config, init=None):
-    logme.debug(__name__ + ':SearchProfile')
-    _url = 'https://api.twitter.com/2/timeline/profile/{user_id}.json'.format(user_id=config.User_id)
+def search_profile(config, init=None):
+    url = 'https://api.twitter.com/2/timeline/profile/{user_id}.json'.format(user_id=config.UserId)
     tweet_count = 100
     params = [
         # some of the fields are not required, need to test which ones aren't required
@@ -200,5 +156,5 @@ def SearchProfile(config, init=None):
 
     if type(init) == str:
         params.append(('cursor', str(init)))
-    _serialQuery = _sanitizeQuery(_url, params)
-    return _url, params, _serialQuery
+    serial_query = _sanitize_query(url, params)
+    return url, params, serial_query
