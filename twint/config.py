@@ -25,9 +25,6 @@ class Config:
     Videos: bool = False
     Media: bool = False
     Replies: bool = False
-    ProxyHost: str = ""
-    ProxyPort: int = 0
-    ProxyType: object = None
     Query: str = None
     CustomQuery: str = ""
     PopularTweets: bool = False
@@ -43,4 +40,3 @@ class Config:
     MinWaitTime: int = 0
     BearerToken: str = None
     GuestToken: str = None
-    deleted: list = None

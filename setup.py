@@ -13,11 +13,7 @@ REQUIRES_PYTHON = '>=3.6.0'
 VERSION = None
 
 # Packages required
-REQUIRED = [
-    'aiohttp', 'aiodns', 'beautifulsoup4', 'cchardet', 'dataclasses',
-    'elasticsearch', 'pysocks', 'pandas', 'aiohttp_socks',
-    'schedule', 'geopy', 'fake-useragent', 'googletransx'
-]
+REQUIRED = ['aiohttp', 'aiodns', 'beautifulsoup4', 'dataclasses', 'fake-useragent', 'requests']
 
 here = os.path.abspath(os.path.dirname(__file__))
 

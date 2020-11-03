@@ -12,7 +12,6 @@ default_bearer_token = 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I
 class TwintSearch:
     def __init__(self, config, token_getter: TokenGetter):
         self.config = config
-        self.config.deleted = []
         if not config.BearerToken:
             config.BearerToken = default_bearer_token
         assert config.GuestToken
