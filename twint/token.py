@@ -1,5 +1,6 @@
 import re
 import time
+from logging import Logger
 from typing import Callable
 
 import requests
@@ -16,8 +17,9 @@ class RefreshTokenException(Exception):
 
 
 class TokenGetter:
-    def __init__(self, *, session: requests.Session = None, timeout=10, retries=5,
+    def __init__(self, logger: Logger, *, session: requests.Session = None, timeout=10, retries=5,
                  sleep_timer: Callable[[int], int] = None):
+        self.logger = logger
         self._session = session or requests.Session()
         self.timeout = timeout
         self.retries = retries
@@ -34,8 +36,8 @@ class TokenGetter:
             try:
                 response = self._session.send(req, allow_redirects=True, timeout=self.timeout)
             except requests.exceptions.RequestException:
+                self.logger.warning('error retrieving %s, retrying', req.url)
                 pass
-                # todo log.log(level, f'Error retrieving {req.url}: {exc!r}{retrying}')
             else:
                 return response
             if attempt < self.retries:
@@ -43,6 +45,7 @@ class TokenGetter:
                 time.sleep(sleep_time)
         else:
             msg = f'{self.retries + 1} requests to {self.url} failed, giving up.'
+            self.logger.error('error quering twitter guest token: %s', msg)
             raise RefreshTokenException(msg)
 
     def refresh(self) -> str:

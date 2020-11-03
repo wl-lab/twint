@@ -40,3 +40,4 @@ class Config:
     MinWaitTime: int = 0
     BearerToken: str = None
     GuestToken: str = None
+    TweetsPortionSize: int = 100

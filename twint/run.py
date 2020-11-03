@@ -1,5 +1,6 @@
 import time
 from asyncio import get_event_loop, TimeoutError, new_event_loop, set_event_loop
+from logging import Logger
 
 from .feed import NoMoreTweetsException, parse_tweets
 from .get import issue_search_request, get_random_user_agent, get_user_id
@@ -10,7 +11,8 @@ default_bearer_token = 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I
 
 
 class TwintSearch:
-    def __init__(self, config, token_getter: TokenGetter):
+    def __init__(self, logger: Logger, config, token_getter: TokenGetter):
+        self.logger = logger
         self.config = config
         if not config.BearerToken:
             config.BearerToken = default_bearer_token
@@ -22,7 +24,7 @@ class TwintSearch:
         self.count = 0
         self.user_agent = ""
 
-    async def get_feed(self) -> list:
+    async def get_feed(self, minimum: int) -> list:
         consecutive_errors_count = 0
         tweets = []
         while True:
@@ -30,18 +32,20 @@ class TwintSearch:
             try:
                 response = await issue_search_request(self.config, self.init)
             except TokenExpiryException:
-                # todo: log
+                self.logger.debug('guest token expired, refreshing')
                 self.token_getter.refresh()
                 response = await issue_search_request(self.config, self.init)
             try:
                 try:
-                    parsed, self.init = parse_tweets(self.config, response)
+                    parsed, self.init = parse_tweets(response)
                     tweets.extend(parsed)
+                    if len(tweets) >= minimum:
+                        return tweets
                 except NoMoreTweetsException:
-                    break
+                    return tweets
             except TimeoutError:
                 # todo log
-                break
+                return tweets
             except Exception:
                 # todo log.critical(__name__ + ':Twint:Feed:noData' + str(e))
                 consecutive_errors_count += 1
@@ -54,17 +58,15 @@ class TwintSearch:
                     time.sleep(delay)
                     self.user_agent = get_random_user_agent(wa=True)
                     continue
-                break
+                return tweets
         return tweets
 
-    async def get_tweets(self):
+    async def get_tweets(self, minimum: int = 0):
         self.user_agent = get_random_user_agent(wa=True)
         self.config.UserId = await get_user_id(self.config.Username, self.config.BearerToken, self.config.GuestToken)
         if self.config.UserId is None:
             raise ValueError("Cannot find twitter account with name = " + self.config.Username)
-        while True:
-            if len(self.feed) > 0:
-                await self.get_feed()
+        return await self.get_feed(minimum)
 
 
 def run(config, token_getter: TokenGetter):

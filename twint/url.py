@@ -32,7 +32,7 @@ def format_date(date):
 
 def common_search(config, init) -> SearchParams:
     url = base
-    tweet_count = 100
+    tweet_count = config.TweetsPortionSize
     q = ""
     params = [
         # ('include_blocking', '1'),
@@ -132,7 +132,7 @@ def common_search(config, init) -> SearchParams:
 
 def profile_search(config, init=None) -> SearchParams:
     url = 'https://api.twitter.com/2/timeline/profile/{user_id}.json'.format(user_id=config.UserId)
-    tweet_count = 100
+    tweet_count = config.TweetsPortionSize
     params = [
         # some of the fields are not required, need to test which ones aren't required
         ('include_profile_interstitial_type', '1'),
