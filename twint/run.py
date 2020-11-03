@@ -1,5 +1,5 @@
 import time
-from asyncio import get_event_loop, TimeoutError, new_event_loop, set_event_loop
+from asyncio import TimeoutError
 from logging import Logger
 
 from .feed import NoMoreTweetsException, parse_tweets
@@ -35,6 +35,7 @@ class TwintSearch:
                 self.logger.debug('guest token expired, refreshing')
                 self.token_getter.refresh()
                 response = await issue_search_request(self.config, self.init)
+            # noinspection PyBroadException
             try:
                 try:
                     parsed, self.init = parse_tweets(response)
@@ -44,10 +45,10 @@ class TwintSearch:
                 except NoMoreTweetsException:
                     return tweets
             except TimeoutError:
-                # todo log
+                self.logger.exception('twitter request timed out')
                 return tweets
             except Exception:
-                # todo log.critical(__name__ + ':Twint:Feed:noData' + str(e))
+                self.logger.exception('twitter request error')
                 consecutive_errors_count += 1
                 if consecutive_errors_count < self.config.RetriesCount:
                     # skip to the next iteration if wait time does not satisfy limit constraints
@@ -58,6 +59,7 @@ class TwintSearch:
                     time.sleep(delay)
                     self.user_agent = get_random_user_agent(wa=True)
                     continue
+                self.logger.info('twitter errors limit exceeded. Returning gathered tweets')
                 return tweets
         return tweets
 
@@ -65,17 +67,5 @@ class TwintSearch:
         self.user_agent = get_random_user_agent(wa=True)
         self.config.UserId = await get_user_id(self.config.Username, self.config.BearerToken, self.config.GuestToken)
         if self.config.UserId is None:
-            raise ValueError("Cannot find twitter account with name = " + self.config.Username)
+            raise ValueError(f'Cannot find twitter account with name = {self.config.Username}')
         return await self.get_feed(minimum)
-
-
-def run(config, token_getter: TokenGetter):
-    try:
-        get_event_loop()
-    except RuntimeError as e:
-        if "no current event loop" in str(e):
-            set_event_loop(new_event_loop())
-        else:
-            raise
-
-    get_event_loop().run_until_complete(TwintSearch(config, token_getter).get_tweets())

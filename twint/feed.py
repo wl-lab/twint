@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 from json import loads
+from logging import Logger
+from typing import Optional, Tuple, List
 
 
 class NoMoreTweetsException(Exception):
@@ -18,18 +20,19 @@ Tweet_formats = {
 }
 
 
-def _get_cursor(response):
+def _get_cursor(response: dict):
     try:
         next_cursor = \
-        response['timeline']['instructions'][0]['addEntries']['entries'][-1]['content']['operation']['cursor']['value']
+            response['timeline']['instructions'][0]['addEntries']['entries'][-1]['content']['operation']['cursor'][
+                'value']
     except KeyError:
         # this is needed because after the first request location of cursor is changed
         next_cursor = \
-        response['timeline']['instructions'][-1]['replaceEntry']['entry']['content']['operation']['cursor']['value']
+            response['timeline']['instructions'][-1]['replaceEntry']['entry']['content']['operation']['cursor']['value']
     return next_cursor
 
 
-def parse_tweets(response):
+def parse_tweets(response, logger: Optional[Logger] = None) -> Tuple[List[dict], str]:
     response = loads(response)
     if len(response['globalObjects']['tweets']) == 0:
         raise NoMoreTweetsException('No more data!')
@@ -51,7 +54,8 @@ def parse_tweets(response):
             try:
                 temp_obj = response['globalObjects']['tweets'][_id]
             except KeyError:
-                # todo log.info('encountered a deleted tweet with id {}'.format(_id))
+                if logger:
+                    logger.info('encountered a deleted tweet with id %s', _id)
                 continue
             temp_obj['user_data'] = response['globalObjects']['users'][temp_obj['user_id_str']]
             if 'retweeted_status_id_str' in temp_obj:
