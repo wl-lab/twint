@@ -66,13 +66,10 @@ async def get_user_id(username, bearer_token, guest_token) -> str:
     return content['data']['user']['rest_id']
 
 
-async def issue_search_request(config, init, connector: aiohttp.TCPConnector = None):
+async def issue_search_request(user_id_or_username: str, profile: bool, config, init,
+                               connector: aiohttp.TCPConnector = None):
     headers = [("authorization", config.BearerToken), ("x-guest-token", config.GuestToken)]
-
-    search_composer = common_search
-    if config.Profile:
-        search_composer = profile_search
-
-    search_params = search_composer(config, init)
+    search_composer = profile_search if profile else common_search
+    search_params = search_composer(user_id_or_username, config, init)
 
     return await request(search_params.url, params=search_params.params, connector=connector, headers=headers)

@@ -30,7 +30,11 @@ def format_date(date):
         return int(datetime.datetime.strptime(date, "%Y-%m-%d").timestamp())
 
 
-def common_search(config, init) -> SearchParams:
+def common_search(username: str, config, init) -> SearchParams:
+    """
+    Creates query parameters and URL for search
+    """
+
     url = base
     tweet_count = config.TweetsPortionSize
     q = ""
@@ -66,10 +70,11 @@ def common_search(config, init) -> SearchParams:
     if config.Lang:
         params.append(("l", config.Lang))
         params.append(("lang", "en"))
+    if username:
+        q += f" from:{username}"
+
     if config.Query:
         q += f" from:{config.Query}"
-    if config.Username:
-        q += f" from:{config.Username}"
     if config.Geo:
         config.Geo = config.Geo.replace(" ", "")
         q += f" geocode:{config.Geo}"
@@ -130,8 +135,12 @@ def common_search(config, init) -> SearchParams:
     return SearchParams(url, params, serial_query)
 
 
-def profile_search(config, init=None) -> SearchParams:
-    url = 'https://api.twitter.com/2/timeline/profile/{user_id}.json'.format(user_id=config.UserId)
+def profile_search(user_id: str, config, init=None) -> SearchParams:
+    """
+    Creates query parameters and URL for profile feed
+    """
+
+    url = f'https://api.twitter.com/2/timeline/profile/{user_id}.json'
     tweet_count = config.TweetsPortionSize
     params = [
         # some of the fields are not required, need to test which ones aren't required

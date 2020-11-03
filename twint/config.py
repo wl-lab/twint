@@ -4,8 +4,6 @@ from typing import Optional
 
 @dataclass
 class Config:
-    Username: Optional[str] = None
-    UserId: Optional[str] = None
     Search: Optional[str] = None
     Geo: str = ""
     Near: str = None
