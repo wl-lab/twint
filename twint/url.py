@@ -23,7 +23,7 @@ def sanitize_query(_url, params):
 
 def format_date(date):
     if 'win' in platform:
-        return f'\'{date.split()[0]}\''
+        return f'"{date.split()[0]}"'
     try:
         return int(datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S').timestamp())
     except ValueError:
