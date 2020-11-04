@@ -7,11 +7,6 @@ import requests
 from twint.parser import find_guest_token, TokenNotFoundError
 
 
-class TokenExpiryException(Exception):
-    def __init__(self, msg):
-        super().__init__(msg)
-
-
 class TokenGetter:
     def __init__(self, logger: Logger, *, session: requests.Session = None, timeout=10, retries=5,
                  sleep_timer: Callable[[int], int] = None, url='https://twitter.com'):

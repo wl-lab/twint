@@ -3,16 +3,7 @@ from datetime import datetime, timezone
 from logging import Logger
 from typing import Optional, Tuple, List
 
-
-class NoMoreTweetsError(Exception):
-    def __init__(self, msg):
-        super().__init__(msg)
-
-
-class TokenNotFoundError(Exception):
-    def __init__(self, msg):
-        super().__init__(msg)
-
+from .errors import TokenNotFoundError, NoMoreTweetsError
 
 tweet_formats = {
     'datetime': '%Y-%m-%d %H:%M:%S %Z',
