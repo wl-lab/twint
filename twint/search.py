@@ -4,40 +4,45 @@ from logging import Logger
 
 import aiohttp
 
-from .feed import NoMoreTweetsException, parse_tweets
-from .get import issue_search_request, get_random_user_agent, get_user_id
+from .config import Config
+from .parser import NoMoreTweetsError, parse_tweets
+from .get import get_user_id, search, get_profile_feed
 from .token import TokenExpiryException, TokenGetter
+from .user_agents import get_random_user_agent
 
 default_bearer_token = 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs' \
                        '%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
 
 
 class TwintSearch:
-    def __init__(self, logger: Logger, config, token_getter: TokenGetter, connector: aiohttp.TCPConnector = None):
+    def __init__(self, logger: Logger, config: Config, token_getter: TokenGetter,
+                 connector: aiohttp.TCPConnector = None):
         self.logger = logger
         self.config = config
         if not config.BearerToken:
             config.BearerToken = default_bearer_token
         assert config.GuestToken
-        self.guest_token = config.GuestToken
         self.token_getter = token_getter
         self.connector = connector
         self.init = -1
-        self.feed = [-1]
         self.count = 0
         self.user_agent = ""
 
-    async def get_feed(self, user_id_or_name: str, minimum: int) -> list:
+    async def get_feed(self, user_id_or_name: str, minimum: int, from_profile: bool) -> list:
         consecutive_errors_count = 0
         tweets = []
+        if from_profile:
+            query = get_profile_feed
+        else:
+            query = search
+
         while True:
-            # this will receive a JSON string, parse it into a `dict` and do the required stuff
             try:
-                response = await issue_search_request(user_id_or_name, self.config.Profile, self.config, self.init)
+                response = await query(user_id_or_name, self.config, self.init)
             except TokenExpiryException:
                 self.logger.debug('guest token expired, refreshing')
-                self.token_getter.refresh()
-                response = await issue_search_request(user_id_or_name, self.config.Profile, self.config, self.init)
+                self.config.GuestToken = self.token_getter.refresh()
+                response = await query(user_id_or_name, self.config, self.init)
             # noinspection PyBroadException
             try:
                 try:
@@ -45,7 +50,7 @@ class TwintSearch:
                     tweets.extend(parsed)
                     if len(tweets) >= minimum:
                         return tweets
-                except NoMoreTweetsException:
+                except NoMoreTweetsError:
                     return tweets
             except TimeoutError:
                 self.logger.exception('twitter request timed out')
@@ -66,11 +71,11 @@ class TwintSearch:
                 return tweets
         return tweets
 
-    async def get_tweets(self, user_id_or_name: str, minimum: int = 0):
+    async def get_tweets(self, username: str, minimum: int = 0):
         self.user_agent = get_random_user_agent(wa=True)
         if self.config.Profile:
-            user_id = await get_user_id(user_id_or_name, self.config.BearerToken, self.config.GuestToken)
+            user_id = await get_user_id(username, self.config.BearerToken, self.config.GuestToken)
             if user_id is None:
-                raise ValueError(f'Cannot find twitter account with name = {user_id_or_name}')
-            return await self.get_feed(user_id, minimum)
-        return await self.get_feed(user_id_or_name, minimum)
+                raise ValueError(f'Cannot find twitter account with name = {username}')
+            return await self.get_feed(user_id, minimum, self.config.Profile)
+        return await self.get_feed(username, minimum, self.config.Profile)

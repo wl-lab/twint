@@ -1,9 +1,10 @@
-import re
 import time
 from logging import Logger
 from typing import Callable
 
 import requests
+
+from twint.parser import find_guest_token, TokenNotFoundError
 
 
 class TokenExpiryException(Exception):
@@ -11,32 +12,24 @@ class TokenExpiryException(Exception):
         super().__init__(msg)
 
 
-class RefreshTokenException(Exception):
-    def __init__(self, msg):
-        super().__init__(msg)
-
-
 class TokenGetter:
     def __init__(self, logger: Logger, *, session: requests.Session = None, timeout=10, retries=5,
-                 sleep_timer: Callable[[int], int] = None):
+                 sleep_timer: Callable[[int], int] = None, url='https://twitter.com'):
         self.logger = logger
-        self._session = session or requests.Session()
+        self.session = session or requests.Session()
         self.timeout = timeout
         self.retries = retries
-        self.url = 'https://twitter.com'
-        self.sleep_timer = sleep_timer or self._default_sleep_timer
+        self.sleep_timer = sleep_timer or _default_sleep_timer
+        self.url = url
 
-    def _default_sleep_timer(self, attempt: int):
-        return 2.0 * 2 ** attempt
-
-    def _issue_request(self):
+    def query_page(self) -> requests.Response:
         for attempt in range(self.retries + 1):
             # The request is newly prepared on each retry because of potential cookie updates.
-            req = self._session.prepare_request(requests.Request('GET', self.url))
             try:
-                response = self._session.send(req, allow_redirects=True, timeout=self.timeout)
+                req = self.session.prepare_request(requests.Request('GET', self.url))
+                response = self.session.send(req, timeout=self.timeout)
             except requests.exceptions.RequestException:
-                self.logger.warning('error retrieving %s, retrying', req.url)
+                self.logger.warning('error retrieving %s, retrying', self.url)
                 pass
             else:
                 return response
@@ -46,12 +39,12 @@ class TokenGetter:
         else:
             msg = f'{self.retries + 1} requests to {self.url} failed, giving up.'
             self.logger.error('error quering twitter guest token: %s', msg)
-            raise RefreshTokenException(msg)
+            raise TokenNotFoundError(msg)
 
     def refresh(self) -> str:
-        response = self._issue_request()
-        match = re.search(r'\("gt=(\d+);', response.text)
-        if match:
-            return str(match.group(1))
-        else:
-            raise RefreshTokenException('Could not find the Guest token in HTML')
+        response = self.query_page()
+        return find_guest_token(response.text)
+
+
+def _default_sleep_timer(attempt: int):
+    return 2.0 * 2 ** attempt

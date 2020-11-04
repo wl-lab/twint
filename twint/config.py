@@ -5,7 +5,7 @@ from typing import Optional
 @dataclass
 class Config:
     Search: Optional[str] = None
-    Geo: str = ""
+    Geo: str = ''
     Near: str = None
     Lang: Optional[str] = None
     Year: Optional[int] = None
@@ -24,7 +24,7 @@ class Config:
     Media: bool = False
     Replies: bool = False
     Query: str = None
-    CustomQuery: str = ""
+    CustomQuery: str = ''
     PopularTweets: bool = False
     NativeRetweets: bool = False
     MinLikes: int = 0
