@@ -1,41 +1,37 @@
+import re
 from datetime import datetime, timezone
-from json import loads
 from logging import Logger
 from typing import Optional, Tuple, List
 
 
-class NoMoreTweetsException(Exception):
+class NoMoreTweetsError(Exception):
     def __init__(self, msg):
         super().__init__(msg)
 
 
-def utc_to_local(utc_dt):
-    return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+class TokenNotFoundError(Exception):
+    def __init__(self, msg):
+        super().__init__(msg)
 
 
-Tweet_formats = {
+tweet_formats = {
     'datetime': '%Y-%m-%d %H:%M:%S %Z',
     'datestamp': '%Y-%m-%d',
     'timestamp': '%H:%M:%S'
 }
 
 
-def _get_cursor(response: dict):
-    try:
-        next_cursor = \
-            response['timeline']['instructions'][0]['addEntries']['entries'][-1]['content']['operation']['cursor'][
-                'value']
-    except KeyError:
-        # this is needed because after the first request location of cursor is changed
-        next_cursor = \
-            response['timeline']['instructions'][-1]['replaceEntry']['entry']['content']['operation']['cursor']['value']
-    return next_cursor
+def find_guest_token(markdown: str) -> str:
+    match = re.search(r'\("gt=(\d+);', markdown)
+    if match:
+        return str(match.group(1))
+    else:
+        raise TokenNotFoundError('Could not find the Guest token in HTML')
 
 
-def parse_tweets(response, logger: Optional[Logger] = None) -> Tuple[List[dict], str]:
-    response = loads(response)
+def parse_tweets(response: dict, logger: Optional[Logger] = None) -> Tuple[List[dict], str]:
     if len(response['globalObjects']['tweets']) == 0:
-        raise NoMoreTweetsException('No more data!')
+        raise NoMoreTweetsError('No more data!')
     feed = []
     for timeline_entry in response['timeline']['instructions'][0]['addEntries']['entries']:
         if timeline_entry['entryId'].startswith('sq-I-t-') or timeline_entry['entryId'].startswith('tweet-'):
@@ -63,7 +59,7 @@ def parse_tweets(response, logger: Optional[Logger] = None) -> Tuple[List[dict],
                 _dt = response['globalObjects']['tweets'][rt_id]['created_at']
                 _dt = datetime.strptime(_dt, '%a %b %d %H:%M:%S %z %Y')
                 _dt = utc_to_local(_dt)
-                _dt = str(_dt.strftime(Tweet_formats['datetime']))
+                _dt = str(_dt.strftime(tweet_formats['datetime']))
                 temp_obj['retweet_data'] = {
                     'user_rt_id': response['globalObjects']['tweets'][rt_id]['user_id_str'],
                     'user_rt': response['globalObjects']['tweets'][rt_id]['full_text'],
@@ -73,3 +69,19 @@ def parse_tweets(response, logger: Optional[Logger] = None) -> Tuple[List[dict],
             feed.append(temp_obj)
     next_cursor = _get_cursor(response)
     return feed, next_cursor
+
+
+def utc_to_local(utc_dt):
+    return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+
+
+def _get_cursor(response: dict):
+    try:
+        next_cursor = \
+            response['timeline']['instructions'][0]['addEntries']['entries'][-1]['content']['operation']['cursor'][
+                'value']
+    except KeyError:
+        # this is needed because after the first request location of cursor is changed
+        next_cursor = \
+            response['timeline']['instructions'][-1]['replaceEntry']['entry']['content']['operation']['cursor']['value']
+    return next_cursor
