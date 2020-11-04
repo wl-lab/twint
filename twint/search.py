@@ -7,7 +7,8 @@ import aiohttp
 from .config import Config
 from .parser import NoMoreTweetsError, parse_tweets
 from .get import get_user_id, search, get_profile_feed
-from .token import TokenExpiryException, TokenGetter
+from .errors import TokenExpiryException, AccessError
+from .token import TokenGetter
 from .user_agents import get_random_user_agent
 
 default_bearer_token = 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs' \
@@ -56,7 +57,7 @@ class TwintSearch:
                 self.logger.exception('twitter request timed out')
                 return tweets
             except Exception:
-                self.logger.exception('twitter request error')
+                self.logger.exception('twitter request error. username or id: %s', user_id_or_name)
                 consecutive_errors_count += 1
                 if consecutive_errors_count < self.config.RetriesCount:
                     # skip to the next iteration if wait time does not satisfy limit constraints

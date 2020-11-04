@@ -4,8 +4,12 @@ from urllib.parse import quote
 import aiohttp
 
 from .config import Config
-from .token import TokenExpiryException
+from .errors import TokenExpiryException, AccessError
 from .url import search_url, profile_feed_url
+
+
+def error_message(json: dict) -> str:
+    return json['errors'][0]['message']
 
 
 def dict_to_url(dct):
@@ -25,7 +29,9 @@ async def request_json(url, connector=None, params=None, headers=None, timeout=a
         async with session.get(url, ssl=True, params=params, proxy=proxy, timeout=timeout) as response:
             json = await response.json()
             if response.status == 429:  # 429 implies Too many requests i.e. Rate Limit Exceeded
-                raise TokenExpiryException(json['errors'][0]['message'])
+                raise TokenExpiryException(error_message(json))
+            if response.status == 403:  # Happens on multiple profile queries with one guest token
+                raise AccessError(error_message(json))
             return json
 
 
