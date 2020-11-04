@@ -14,11 +14,8 @@ class SearchParams(NamedTuple):
     serial_query: str
 
 
-def sanitize_query(_url, params):
-    _serialized_query = ""
-    _serialized_query = urlencode(params, quote_via=quote)
-    _serialized_query = _url + "?" + _serialized_query
-    return _serialized_query
+def sanitize_query(url, params):
+    return url + '?' + urlencode(params, quote_via=quote)
 
 
 def format_date(date):
