@@ -10,15 +10,12 @@ URL = 'https://github.com/twintproject/twint'
 EMAIL = 'codyzacharias@pm.me'
 AUTHOR = 'Cody Zacharias'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '2.1.21fork'
+VERSION = '2.1.21-fork'
 
 # Packages required
 REQUIRED = ['aiohttp', 'aiodns', 'beautifulsoup4', 'dataclasses', 'fake-useragent', 'requests']
 
 here = os.path.abspath(os.path.dirname(__file__))
-
-with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
-    long_description = '\n' + f.read()
 
 about = {'__version__': VERSION}
 
@@ -26,7 +23,7 @@ setup(
     name=NAME,
     version=about['__version__'],
     description=DESCRIPTION,
-    long_description=long_description,
+    long_description='see original project for description: https://github.com/twintproject/twint',
     long_description_content_type='text/markdown',
     author=AUTHOR,
     author_email=EMAIL,
