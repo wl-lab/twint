@@ -79,7 +79,8 @@ class TwintSearch:
     async def get_tweets(self, username: str, minimum: int = 0):
         self.user_agent = get_random_user_agent(wa=True)
         if self.config.Profile:
-            user_id = await get_user_id(username, self.config.BearerToken, self.config.GuestToken)
+            user_id = await get_user_id(username, self.config.BearerToken, self.config.GuestToken,
+                                        connector=self.connector)
             if user_id is None:
                 raise ValueError(f'Cannot find twitter account with name = {username}')
             return await self.get_feed(user_id, minimum, self.config.Profile)
