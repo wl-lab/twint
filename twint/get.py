@@ -30,7 +30,7 @@ async def request_json(url, connector=None, params=None, headers=None, timeout=a
     """
     Shorthand for issuing async requests
     """
-    async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
+    async with aiohttp.ClientSession(connector=connector, headers=headers, connector_owner=False) as session:
         async with session.get(url, ssl=True, params=params, proxy=proxy, timeout=timeout) as response:
             json = await response.json()
             if response.status == 429:  # 429 implies Too many requests i.e. Rate Limit Exceeded
