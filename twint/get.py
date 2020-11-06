@@ -26,11 +26,12 @@ def create_headers(bearer: str, guest: str, ua: str) -> list:
 
 
 async def request_json(url, connector=None, params=None, headers=None, timeout=aiohttp.client.DEFAULT_TIMEOUT,
-                       proxy=None) -> dict:
+                       proxy=None, trust_env=True) -> dict:
     """
     Shorthand for issuing async requests
     """
-    async with aiohttp.ClientSession(connector=connector, headers=headers, connector_owner=False) as session:
+    async with aiohttp.ClientSession(connector=connector, headers=headers, connector_owner=False,
+                                     trust_env=trust_env) as session:
         async with session.get(url, ssl=True, params=params, proxy=proxy, timeout=timeout) as response:
             json = await response.json()
             if response.status == 429:  # 429 implies Too many requests i.e. Rate Limit Exceeded
@@ -56,7 +57,7 @@ async def get_user_id(username, bearer_token, guest_token, connector: aiohttp.TC
 
 async def search(username: str, config, init, connector: aiohttp.TCPConnector = None, ua=default_user_agent) -> dict:
     """
-    Composes search (or feed) parameters and issues request.
+    Composes search parameters and issues request.
 
     :param username:
     :param config: search configuration. config.TweetsPortionSize sets tweets count for query
