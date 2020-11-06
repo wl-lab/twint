@@ -39,3 +39,4 @@ class Config:
     BearerToken: str = None
     GuestToken: str = None
     TweetsPortionSize: int = 100
+    AiohttpTimeout: int = 30  # seconds

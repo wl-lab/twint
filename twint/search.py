@@ -81,7 +81,7 @@ class TwintSearch:
         self.user_agent = get_random_user_agent(wa=True)
         if self.config.Profile:
             user_id = await get_user_id(username, self.config.BearerToken, self.config.GuestToken,
-                                        connector=self.connector, proxy=self.proxy)
+                                        connector=self.connector, proxy=self.proxy, timeout=self.config.AiohttpTimeout)
             if user_id is None:
                 raise ValueError(f'Cannot find twitter account with name = {username}')
             return await self.get_feed(user_id, minimum, self.config.Profile)
