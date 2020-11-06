@@ -42,7 +42,7 @@ async def request_json(url, connector=None, params=None, headers=None, timeout=a
 
 
 async def get_user_id(username, bearer_token, guest_token, connector: aiohttp.TCPConnector = None,
-                      ua=default_user_agent) -> str:
+                      ua=default_user_agent, proxy: str = None) -> str:
     """
     Query user ID by username
     """
@@ -51,11 +51,12 @@ async def get_user_id(username, bearer_token, guest_token, connector: aiohttp.TC
         .format(dict_to_url(dct))
     headers = create_headers(bearer_token, guest_token, ua)
 
-    response = await request_json(url, connector=connector, headers=headers)
+    response = await request_json(url, connector=connector, headers=headers, proxy=proxy)
     return response['data']['user']['rest_id']
 
 
-async def search(username: str, config, init, connector: aiohttp.TCPConnector = None, ua=default_user_agent) -> dict:
+async def search(username: str, config, init, connector: aiohttp.TCPConnector = None, ua=default_user_agent,
+                 proxy: str = None) -> dict:
     """
     Composes search parameters and issues request.
 
@@ -64,17 +65,19 @@ async def search(username: str, config, init, connector: aiohttp.TCPConnector = 
     :param init: start index in tweet feed
     :param connector:
     :param ua: User-Agent header value
+    :param proxy: proxy string
 
     :returns: JSON response as string
     """
     headers = create_headers(config.BearerToken, config.GuestToken, ua)
     search_params = search_url(username, config, init)
 
-    return await request_json(search_params.url, params=search_params.params, connector=connector, headers=headers)
+    return await request_json(search_params.url, params=search_params.params, connector=connector, headers=headers,
+                              proxy=proxy)
 
 
 async def get_profile_feed(user_id: str, config: Config, init, connector: aiohttp.TCPConnector = None,
-                           ua=default_user_agent) -> dict:
+                           ua=default_user_agent, proxy: str = None) -> dict:
     """
     Composes search (or feed) parameters and issues request.
 
@@ -83,10 +86,12 @@ async def get_profile_feed(user_id: str, config: Config, init, connector: aiohtt
     :param init: start index in tweet feed
     :param connector:
     :param ua: User-Agent header value
+    :param proxy: proxy string
 
     :returns: JSON response as string
     """
     headers = create_headers(config.BearerToken, config.GuestToken, ua)
     search_params = profile_feed_url(user_id, config.TweetsPortionSize, init)
 
-    return await request_json(search_params.url, params=search_params.params, connector=connector, headers=headers)
+    return await request_json(search_params.url, params=search_params.params, connector=connector, headers=headers,
+                              proxy=proxy)

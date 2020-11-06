@@ -17,7 +17,7 @@ default_bearer_token = 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I
 
 class TwintSearch:
     def __init__(self, logger: Logger, config: Config, token_getter: TokenGetter,
-                 connector: aiohttp.TCPConnector = None, raise_access_error=True):
+                 connector: aiohttp.TCPConnector = None, raise_access_error=True, proxy: str = None):
         self.logger = logger
         self.config = config
         if not config.BearerToken:
@@ -29,6 +29,7 @@ class TwintSearch:
         self.count = 0
         self.user_agent = ""
         self.raise_access_error = raise_access_error
+        self.proxy = proxy
 
     async def get_feed(self, user_id_or_name: str, minimum: int, from_profile: bool) -> list:
         consecutive_errors_count = 0
@@ -41,7 +42,7 @@ class TwintSearch:
             # noinspection PyBroadException
             try:
                 response = await query(user_id_or_name, self.config, self.init, connector=self.connector,
-                                       ua=self.user_agent)
+                                       ua=self.user_agent, proxy=self.proxy)
             except TokenExpiryException:
                 self.logger.debug('guest token expired, refreshing')
                 self.config.GuestToken = self.token_getter.refresh()
@@ -80,7 +81,7 @@ class TwintSearch:
         self.user_agent = get_random_user_agent(wa=True)
         if self.config.Profile:
             user_id = await get_user_id(username, self.config.BearerToken, self.config.GuestToken,
-                                        connector=self.connector)
+                                        connector=self.connector, proxy=self.proxy)
             if user_id is None:
                 raise ValueError(f'Cannot find twitter account with name = {username}')
             return await self.get_feed(user_id, minimum, self.config.Profile)
