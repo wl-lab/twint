@@ -21,8 +21,7 @@ class TokenGetter:
         for attempt in range(self.retries + 1):
             # The request is newly prepared on each retry because of potential cookie updates.
             try:
-                req = self.session.prepare_request(requests.Request('GET', self.url))
-                response = self.session.send(req, timeout=self.timeout)
+                response = self.session.get(self.url, timeout=self.timeout)
             except requests.exceptions.RequestException:
                 self.logger.warning('error retrieving %s, retrying', self.url)
                 pass
