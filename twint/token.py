@@ -4,6 +4,7 @@ from typing import Callable
 
 import requests
 
+from twint.user_agents import default_user_agent
 from twint.parser import find_guest_token, TokenNotFoundError
 
 
@@ -12,6 +13,8 @@ class TokenGetter:
                  sleep_timer: Callable[[int], int] = None, url='https://twitter.com'):
         self.logger = logger
         self.session = session or requests.Session()
+        if not session:
+            self.session.headers.update({'User-Agent': default_user_agent})
         self.timeout = timeout
         self.retries = retries
         self.sleep_timer = sleep_timer or _default_sleep_timer
